@@ -1,0 +1,16 @@
+{
+    // Format files on save
+    "editor.formatOnSave": true,
+
+    // Set the default Rust formatter to rustfmt (via rust-analyzer)
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    
+    // Optional: Enable rust-analyzer to use rustfmt for formatting
+    "rust-analyzer.rustfmt.extraArgs": [],
+
+    "nixEnvSelector.nixFile": "${workspaceFolder}/shell.nix",
+
+    "profileSwitcher.profile": "rust"
+}
