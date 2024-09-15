@@ -1,4 +1,5 @@
 /target
-global_georeferenced_wildcat.las
 *.las
+*.txt
+*.ply
 
