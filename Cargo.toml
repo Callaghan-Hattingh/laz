@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 las = "0.9"
+byteorder = "1"
