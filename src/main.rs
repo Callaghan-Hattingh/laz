@@ -47,8 +47,7 @@ fn read_ply_header(file_path: &str) -> io::Result<(PlyHeader, u64)> {
         } else if line.starts_with("property") {
             header.properties.push(line.to_string());
         } else if line == "end_header" {
-            // End of the header section
-            header_size += 1;
+            // header_size += 1;
             break;
         }
     }
@@ -87,7 +86,7 @@ fn read_binary_data(
             range,
         });
 
-        if index > 10 {
+        if index > 20 {
             break;
         }
     }
@@ -100,7 +99,11 @@ fn main() {
 
     let tuple_header = match read_ply_header(file_path) {
         Ok(header) => {
-            println!("PLY Header: {:?}", header);
+            println!("PLY Header: {:?}\n\n", header.0);
+            for h in &header.0.properties {
+                println!("{:?}", h);
+            }
+            println!("length of header: {}\n", header.1);
             header
         }
         Err(e) => {
@@ -112,10 +115,8 @@ fn main() {
     match read_binary_data(file_path, &tuple_header.0, tuple_header.1) {
         Ok(vertices) => {
             for vertex in vertices {
-                println!("Vertice: {:?}, time: {:?}\n", vertex, vertex.time);
-
+                println!("{:?}\n", vertex);
             }
-            
         }
         Err(e) => {
             eprintln!("Failed to read binary data: {}", e);

@@ -121,6 +121,7 @@ name = "laz"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "chrono",
  "las",
 ]
 
