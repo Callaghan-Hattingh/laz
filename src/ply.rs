@@ -47,7 +47,7 @@ fn read_ply_header(file_path: &str) -> io::Result<(PlyHeader, u64)> {
         } else if line.starts_with("property") {
             header.properties.push(line.to_string());
         } else if line == "end_header" {
-            // header_size += 1;
+             // header_size += 1;
             break;
         }
     }
@@ -95,7 +95,7 @@ fn read_binary_data(
 }
 
 fn main() {
-    let file_path = "./map/global_georeferenced_wildcat.ply"; // Replace with your .ply file path
+    let file_path = "./map/global_georeferenced_wildcat.ply"; 
 
     let tuple_header = match read_ply_header(file_path) {
         Ok(header) => {
