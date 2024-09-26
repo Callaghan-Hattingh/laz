@@ -1,16 +1,16 @@
 use std::io::{self, BufRead, BufReader};
 use std::fs::File;
 
-#[derive(Debug)]
-struct Trajectory {
-    time: f64,
-    x: f64,
-    y: f64,
-    z: f64,
-    qw: f64,
-    qx: f64,
-    qy: f64,
-    qz: f64,
+#[derive(Debug, Clone)]
+pub struct Trajectory {
+    pub time: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub qw: f64,
+    pub qx: f64,
+    pub qy: f64,
+    pub qz: f64,
 }
 
 impl Trajectory {
@@ -48,11 +48,12 @@ impl Trajectory {
     
 }
 
-fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
+pub fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
     let mut trajectories = Vec::new();
+    let mut traj_old: Option<Trajectory> = None;
 
     for (line_number, line) in reader.lines().enumerate() {
         let line = line?;
@@ -65,19 +66,17 @@ fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
                     continue;
                 }
             };
-            trajectories.push(traj);
-        }
 
+            if line_number > 2 && traj_old.is_some() {
+                assert!(traj.time >= traj_old.unwrap().time);
+            }
+
+            trajectories.push(traj.clone());
+
+            traj_old = Some(traj);
+        }
     }
 
     Ok(trajectories)
 
-}
-
-fn main() {
-    let file_path = "./map/global_georeferenced_wildcat_traj.txt";
-
-    let traj = read_traj_txt_data(file_path);
-
-    println!("There are {} trajectories in the file.", traj.unwrap().len());
 }
