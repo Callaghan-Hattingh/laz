@@ -1,5 +1,5 @@
-use std::io::{self, BufRead, BufReader};
 use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 
 #[derive(Debug, Clone)]
 pub struct Trajectory {
@@ -34,7 +34,7 @@ impl Trajectory {
         let qy = parts[6].parse::<f64>().map_err(|e| e.to_string())?;
         let qz = parts[7].parse::<f64>().map_err(|e| e.to_string())?;
 
-        Ok(Trajectory{
+        Ok(Trajectory {
             time,
             x,
             y,
@@ -45,7 +45,6 @@ impl Trajectory {
             qz,
         })
     }
-    
 }
 
 pub fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
@@ -59,7 +58,7 @@ pub fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
         let line = line?;
         let line = line.trim();
         if line_number > 1 {
-            let traj = match Trajectory::from_line(line) { 
+            let traj = match Trajectory::from_line(line) {
                 Ok(trajectory) => trajectory,
                 Err(e) => {
                     eprintln!("Failed to read TXT error: {}", e);
@@ -78,5 +77,4 @@ pub fn read_traj_txt_data(file_path: &str) -> io::Result<Vec<Trajectory>> {
     }
 
     Ok(trajectories)
-
 }
