@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Seek, SeekFrom};
 use std::path::Path;
 
+use crate::txt::Trajectory;
+
 /// Represents the header of a PLY file.
 #[derive(Debug)]
 pub struct PlyHeader {
@@ -162,7 +164,10 @@ pub fn read_last_vertices<P: AsRef<Path>>(
 
     // Calculate the position to seek to for the last `vertices_to_read` vertices
     // Note: This assumes fixed-size binary data for vertices.
-    println!("header_size {}\n total_vertices {}\n  vertices_to_read {}\n vertex_size {}\n", header_size, total_vertices, vertices_to_read, vertex_size);
+    println!(
+        "header_size {}\n total_vertices {}\n  vertices_to_read {}\n vertex_size {}\n",
+        header_size, total_vertices, vertices_to_read, vertex_size
+    );
     let seek_position =
         header_size + (total_vertices as u64 - vertices_to_read as u64) * vertex_size;
 
@@ -185,13 +190,116 @@ pub fn read_last_vertices<P: AsRef<Path>>(
 /// # Returns
 ///
 /// A tuple containing vectors of the first and last `Vertex` structs.
-pub fn read_first_and_last_vertices<P: AsRef<Path>>(
-    file_path: P,
-) -> io::Result<(Vertex, Vertex)> {
+pub fn read_first_and_last_vertices<P: AsRef<Path>>(file_path: P) -> io::Result<(Vertex, Vertex)> {
     let (header, header_size) = read_ply_header(&file_path)?;
 
     let mut first_vertex = read_first_vertices(&file_path, &header, header_size, 1)?;
     let mut last_vertex = read_last_vertices(&file_path, &header, header_size, 1)?;
 
     Ok((first_vertex.pop().unwrap(), last_vertex.pop().unwrap()))
+}
+
+fn interpolate(
+    i_trajectory: &Trajectory,
+    f_trajectory: &Trajectory,
+    p_time: f64,
+) -> (f64, f64, f64) {
+    let x_d = f_trajectory.x - i_trajectory.x;
+    let y_d = f_trajectory.y - i_trajectory.y;
+    let z_d = f_trajectory.z - i_trajectory.z;
+
+    let cf = (p_time - i_trajectory.time) / (f_trajectory.time - i_trajectory.time);
+
+    (
+        i_trajectory.x + x_d * cf,
+        i_trajectory.y + y_d * cf,
+        i_trajectory.z + z_d * cf,
+    )
+}
+
+pub fn create_new_ply_file<P: AsRef<Path>>(
+    file_path: P,
+    header: &PlyHeader,
+    header_size: u64,
+    trajectories: Vec<Trajectory>,
+) -> io::Result<()> {
+    let file = File::open(file_path).expect("Error opening file.");
+    let mut reader = BufReader::new(file);
+    reader
+        .seek(SeekFrom::Start(header_size))
+        .expect("Error finding point to start reading data.");
+
+    let mut t1: Option<Trajectory> = None;
+    let mut t2: Option<Trajectory> = None;
+    let mut v_old: Option<Vertex> = None;
+    let mut number = 0;
+
+    for (index, trajectory) in trajectories.iter().enumerate() {
+        if index > 1000 {
+            break;
+        }
+
+        if t1.is_none() && t2.is_none() {
+            t1 = Some(trajectory.clone());
+            t2 = Some(trajectory.clone());
+        } else {
+            t1 = t2;
+            t2 = Some(trajectory.clone());
+        }
+
+        loop {
+            number += 1;
+
+            match Vertex::read_from(&mut reader) {
+                Ok(vertex) => {
+                    let v = vertex.clone();
+                    let x_s: f64;
+                    let y_s: f64;
+                    let z_s: f64;
+
+                    if v_old.is_none() {
+                        v_old = Some(v.clone());
+                    } else {
+                        let v_ref = v_old.as_ref().unwrap().time;
+                        let v_time = v.time;
+                        assert!(v_ref <= v_time, "{:?} {:?}", v_ref, v_time); // flacky
+                        v_old = Some(v.clone());
+                    }
+
+                    if v.time > t2.as_ref().unwrap().time {
+                        break;
+                    }
+
+                    if v.time == t1.as_ref().unwrap().time {
+                        // equal to initial time
+                        x_s = t1.as_ref().unwrap().x;
+                        y_s = t1.as_ref().unwrap().y;
+                        z_s = t1.as_ref().unwrap().z;
+                    } else if v.time == t2.as_ref().unwrap().time {
+                        // equal to final time
+                        x_s = t2.as_ref().unwrap().x;
+                        y_s = t2.as_ref().unwrap().y;
+                        z_s = t2.as_ref().unwrap().z;
+                    } else {
+                        // interoplate
+                        (x_s, y_s, z_s) =
+                            interpolate(t1.as_ref().unwrap(), t2.as_ref().unwrap(), v.time);
+                    }
+
+                    let x_n = x_s - v.x;
+                    let y_n = y_s - v.y;
+                    let z_n = z_s - v.z;
+                    println!("{x_n}{y_n}{z_n} {number}");
+                }
+                Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                    break;
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
+        }
+    }
+
+    Ok(())
 }

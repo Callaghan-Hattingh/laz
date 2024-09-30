@@ -2,9 +2,10 @@ Done:
 Read ply
 Read txt
 Check txt timestamps
+Confirm that timestamps are with in range of each file type 
+
 
 Todo:
-Confirm that timestamps are with in range of each file type 
 interpolated
 calculate the vectors
 new .ply
